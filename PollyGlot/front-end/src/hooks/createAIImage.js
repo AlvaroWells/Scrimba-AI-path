@@ -1,7 +1,11 @@
 import { aiImgConfig, ai } from "../utils/AI_config";
+import { useState } from "react";
 
 export const useAIImage = () => {
-  const generateImage = async ({ userInput }) => {
+  const [isLoading, setIsLoading] = useState(false)
+  
+  const generateImage = async ({ userInput, selectedLanguage }) => {
+    setIsLoading(true)
     try {
       const response = await ai.models.generateContent({
         model: aiImgConfig.modelName,
@@ -10,7 +14,7 @@ export const useAIImage = () => {
             role: "user",
             parts: [
               {
-                text: `Generate an image that represents ${userInput}`
+                text: `Generate an image that represents the ${userInput}, and if possible, make it representative from the country of the ${selectedLanguage}`
               }
             ]
           }
@@ -26,14 +30,11 @@ export const useAIImage = () => {
             const imageData = part.inlineData.data;
             
             // 1. Decodificar base64 (sin Buffer)
-            const binaryString = window.atob(imageData);
-            const bytes = new Uint8Array(binaryString.length);
-            for (let i = 0; i < binaryString.length; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
-            }
+            const byteCharacters = Uint8Array.from(atob(imageData), c => c.charCodeAt(0));
+            const blob = new Blob([byteCharacters], { type: 'image/png' });
 
             // 2. Crear imagen descargable
-            const blob = new Blob([bytes], { type: 'image/png' });
+            // const blob = new Blob([bytes], { type: 'image/png' });
             return URL.createObjectURL(blob);
         }
       }
@@ -43,8 +44,10 @@ export const useAIImage = () => {
     } catch (error) {
       console.error("Error generando imagen:", error)
       throw error
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  return { generateImage }
+  return { generateImage, isLoading }
 }
